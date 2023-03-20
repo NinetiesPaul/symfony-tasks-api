@@ -1,9 +1,9 @@
-## About
-This is a PHP's Symfony base application running on Docker. This is just a simple API that you can:
+## Tasks API in PHP's Symfony
+A simple API using PHP's Symfony. It has some basic functions, like:
 
-- User registration
-- User authentication using JWT
-- CRUD operations of Tasks
+- User registration and authentication using JWT
+- Perform CRUD operations of Tasks
+- Some basics business rules enforced
 
 My main goal is to showcase some of Symfony's features like:
 
@@ -12,12 +12,14 @@ My main goal is to showcase some of Symfony's features like:
 - Routes definitions
 - SOLID and KISS principles on a MVC architecture
 
-## App building
+The main tech behind it is PHP, mainly the Symfony framework. I'm also using some others libraries. For storaging, i'm using MySQL relational database
+
+## Installation and Configuration
 This app uses Docker, so you should have it up and running beforehand. Then clone this rep and cd into the project's folder. Before anything create a local copy of the .env file by running: 
 ```
 cp .env.local .env
 ```
-Open the newly created file, and in place of the {}'s information, use your database connection information. Having done that, execute the following:
+Open the newly created file, and in place of the {}'s information, use your database connection information. Having done that, run the following:
 
 ```
 docker-compose build
