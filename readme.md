@@ -28,10 +28,10 @@ docker-compose exec php composer install
 docker-compose exec php php bin/console doctrine:migrations:migrate
 docker-compose exec php php bin/console lexik:jwt:generate-keypair
 ```
-
+If all containers are up and running without errors, then the app is ready for usage.
 ## Usage
-#### __User creation__
-If it goes well it should return a 200 status response.
+### __Users__
+#### User creation
 ```
 curl --location 'http://localhost:8015/login' \
 --header 'Content-Type: application/json' \
@@ -41,8 +41,7 @@ curl --location 'http://localhost:8015/login' \
 }'
 ```
 
-#### __User authenticate__
-Copy the token retrieved by that endpoint under the "token" attribute. Add it to the 'Authorization: Bearer ' header on all Task related requests
+#### User authentication
 ```
 curl --location 'http://localhost:8015/login' \
 --header 'Content-Type: application/json' \
@@ -51,11 +50,11 @@ curl --location 'http://localhost:8015/login' \
     "password": "123456"
 }'
 ```
-
-#### __Create Task__
-That endpoint create a new Task. All these attributes are required. It will the token's authenticated user as the Owner
+### __Tasks__
+Copy the token retrieved by the User authentication endpoint under the "token" attribute. Add it to the 'Authorization: Bearer ' header on all Task related requests
+#### Creating a new Task
 ```
-curl --location 'http://localhost:8015/api/task' \
+curl --location 'http://localhost:8015/api/task/create' \
 --header 'Authorization: Bearer {place_token_here}' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -65,18 +64,15 @@ curl --location 'http://localhost:8015/api/task' \
 }'
 ```
 
-#### __Retrieve Tasks__
-That endpoint retrieve all tasks that you create
+#### Listing all Tasks
 ```
-curl --location 'http://localhost:8015/api/tasks' \
+curl --location 'http://localhost:8015/api/task/list' \
 --header 'Authorization: Bearer {place_token_here}'
 ```
 
-#### __Update Task__
-That endpoint updates information of an existing task.
-- Replace {```taskId```} with the id of an existing Task
+#### Updating a Task
 ```
-curl --location --request PUT 'http://localhost:8015/api/task/{taskId}' \
+curl --location --request PUT 'http://localhost:8015/api/task/update/{taskId}' \
 --header 'Authorization: Bearer {place_token_here}' \
 --header 'Content-Type: application/json' \
 --data '{
@@ -84,18 +80,14 @@ curl --location --request PUT 'http://localhost:8015/api/task/{taskId}' \
 }'
 ```
 
-#### __Close Task__
-That endpoint closes an existing task. 
-- Replace {```taskId```} with the id of an existing Task
+#### Closing a Task
 ```
-curl --location --request PUT 'http://localhost:8015/api/task/{taskId}/close' \
+curl --location --request PUT 'http://localhost:8015/api/task/close/{taskId}' \
 --header 'Authorization: Bearer {place_token_here}'
 ```
 
-#### __Delete Task__
-That endpoint deletes an existing task.
-- Replace {```taskId```} with the id of an existing Task
+#### Deleting a Task
 ```
-curl --location --request DELETE 'http://localhost:8015/api/task/{taskId}' \
+curl --location --request DELETE 'http://localhost:8015/api/task/delete/{taskId}' \
 --header 'Authorization: Bearer {place_token_here}'
 ```
