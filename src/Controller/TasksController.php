@@ -6,6 +6,7 @@ use DateTime;
 use App\Entity\User;
 use App\Entity\Tasks;
 use App\Repository\TasksRepository;
+use App\Repository\UserRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,10 +20,53 @@ use Symfony\Component\Validator\Constraints as Assert;
 class TasksController extends AbstractController
 {
     #[Route('/api/task/list', methods: ['GET'])]
-    public function list(ManagerRegistry $doctrine): JsonResponse
+    public function list(ManagerRegistry $doctrine, Request $request): JsonResponse
     {
         $taskRep = new TasksRepository($doctrine);
-        $tasks = $taskRep->findBy([], [ 'id' => 'DESC' ]);
+
+        $parameters = [];
+
+        $typeQueryParameter = $request->query->get('type');
+        $statusQueryParameter = $request->query->get('status');
+        $createdByQueryParameter = $request->query->get('created_by');
+
+        if ($typeQueryParameter !== null) {
+            if (!Tasks::allowedTypes($typeQueryParameter)) {
+                return $this->json([
+                    'success' => false,
+                    'message' => "Invalid task type: must be one of 'feature' 'bugfix' 'hotfix'"
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $parameters['type'] = $request->query->get('type');
+        }
+        
+        if ($statusQueryParameter !== null) {
+            if (!Tasks::allowedStatuses($statusQueryParameter)) {
+                return $this->json([
+                    'success' => false,
+                    'message' => "Invalid task status: must be one of 'open' 'closed' 'in_dev' 'blocked' 'in_qa'"
+                ], Response::HTTP_BAD_REQUEST);
+            }
+
+            $parameters['status'] = $request->query->get('status');
+        }
+        
+        if ($createdByQueryParameter !== null) {
+            $userRep = new UserRepository($doctrine);
+            $user = $userRep->find($createdByQueryParameter);
+
+            if (!$user) {
+                return $this->json([
+                    'success' => false,
+                    'message' => "No user found with given id"
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            $parameters['createdBy'] = $request->query->get('created_by');
+        }
+        
+        $tasks = $taskRep->findBy($parameters, [ 'id' => 'DESC' ]);
 
         return $this->json([
             'success' => true,
@@ -34,6 +78,13 @@ class TasksController extends AbstractController
     {
         $taskRep = new TasksRepository($doctrine);
         $task = $taskRep->find($taskId);
+
+        if (!$task) {
+            return $this->json([
+                'success' => false,
+                'message' => "No task found with given id"
+            ], Response::HTTP_NOT_FOUND);
+        }
 
         return $this->json([
             'success' => true,
