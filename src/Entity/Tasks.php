@@ -22,10 +22,14 @@ class Tasks
 
     #[ORM\ManyToOne(fetch: "EAGER")]
     #[ORM\JoinColumn(nullable: false)]
-    private ?User $ownedBy = null;
+    private ?User $createdBy = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $createdOn = null;
+
+    #[ORM\ManyToOne(fetch: "EAGER")]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $closedBy = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $closedOn = null;
@@ -65,14 +69,26 @@ class Tasks
         return $this;
     }
 
-    public function getOwnedBy(): ?User
+    public function getCreatedBy(): ?User
     {
-        return $this->ownedBy;
+        return $this->createdBy;
     }
 
-    public function setOwnedBy(?User $ownedBy): self
+    public function setCreatedBy(?User $createdBy): self
     {
-        $this->ownedBy = $ownedBy;
+        $this->createdBy = $createdBy;
+
+        return $this;
+    }
+
+    public function getClosedBy(): ?User
+    {
+        return $this->closedBy;
+    }
+
+    public function setClosedBy(?User $closedBy): self
+    {
+        $this->closedBy = $closedBy;
 
         return $this;
     }
