@@ -27,7 +27,7 @@ services:
     environment:
      - MYSQL_PASSWORD=root
      - MYSQL_ROOT_PASSWORD=root
-     - MYSQL_DATABASE=db_name
+     - MYSQL_DATABASE=tasks-api_symfony
     container_name: db_mysql
 
 volumes:
