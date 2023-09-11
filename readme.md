@@ -41,10 +41,10 @@ If all containers are up and running without errors, then the app is ready for u
 ### __Users__
 #### User creation
 ```
-curl --location 'http://localhost:8015/login' \
+curl --location 'http://localhost:8015/register' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "username": "t.soprano@mail.com",
+    "email": "t.soprano@mail.com",
     "password": "123456"
 }'
 ```
@@ -73,8 +73,18 @@ curl --location 'http://localhost:8015/api/task/create' \
 ```
 
 #### Listing all Tasks
+Replace ```{created_by}``` with a User Id  
+Replace ```{status}``` with any of the following: new, in_dev, in_qa, blocked, closed  
+Replace ```{type}``` with any of the following: feature, bugfix, hotfix  
+If none of these filters are present this endpoint will retrieve all existing Tasks
 ```
-curl --location 'http://localhost:8015/api/task/list' \
+curl --location 'http://localhost:8015/api/task/list?type={type}&status={status}&created_by={created_by}' \
+--header 'Authorization: Bearer {place_token_here}'
+```
+
+#### Selecting a single Task
+```
+curl --location 'http://localhost:8015/api/task/view/2' \
 --header 'Authorization: Bearer {place_token_here}'
 ```
 
