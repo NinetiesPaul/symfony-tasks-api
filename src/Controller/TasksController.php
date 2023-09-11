@@ -18,8 +18,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class TasksController extends AbstractController
 {
-    #[Route('/api/tasks', methods: ['GET'])]
-    public function read(ManagerRegistry $doctrine): JsonResponse
+    #[Route('/api/task/list', methods: ['GET'])]
+    public function list(ManagerRegistry $doctrine): JsonResponse
     {
         $taskRep = new TasksRepository($doctrine);
         $tasks = $taskRep->findBy([], [ 'id' => 'DESC' ]);
@@ -29,8 +29,19 @@ class TasksController extends AbstractController
             'data' => $tasks
         ]);
     }
+    #[Route('/api/task/view/{taskId}', methods: ['GET'])]
+    public function view(ManagerRegistry $doctrine, int $taskId): JsonResponse
+    {
+        $taskRep = new TasksRepository($doctrine);
+        $task = $taskRep->find($taskId);
 
-    #[Route('/api/task', methods: ['POST'])]
+        return $this->json([
+            'success' => true,
+            'data' => $task
+        ]);
+    }
+
+    #[Route('/api/task/create', methods: ['POST'])]
     public function create(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, ValidatorInterface $validator, Request $request): JsonResponse
     {
         $request = json_decode($request->getContent());
@@ -92,7 +103,7 @@ class TasksController extends AbstractController
         ]);
     }
 
-    #[Route('/api/task/{taskId}', methods: ['PUT'])]
+    #[Route('/api/task/update/{taskId}', methods: ['PUT'])]
     public function update(ManagerRegistry $doctrine, Request $request, int $taskId): JsonResponse
     {
         $request = json_decode($request->getContent());
@@ -153,7 +164,7 @@ class TasksController extends AbstractController
         ]);
     }
 
-    #[Route('/api/task/{taskId}', methods: ['DELETE'])]
+    #[Route('/api/task/delete/{taskId}', methods: ['DELETE'])]
     public function delete(ManagerRegistry $doctrine, int $taskId): JsonResponse
     {
         $taskRep = new TasksRepository($doctrine);
@@ -174,8 +185,8 @@ class TasksController extends AbstractController
         ]);
     }
 
-    #[Route('/api/task/{taskId}/close', methods: ['PUT'])]
-    public function close(ManagerRegistry $doctrine, int $taskId): JsonResponse
+    #[Route('/api/task/close/{taskId}', methods: ['PUT'])]
+    public function close(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, int $taskId): JsonResponse
     {
         $taskRep = new TasksRepository($doctrine);
         $task = $taskRep->find($taskId);
