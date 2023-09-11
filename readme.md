@@ -23,9 +23,17 @@ Open the newly created file, and in place of the {}'s information, use your data
 
 ```
 docker-compose build
+```
+```
 docker-compose up -d
+```
+```
 docker-compose exec php composer install
+```
+```
 docker-compose exec php php bin/console doctrine:migrations:migrate
+```
+```
 docker-compose exec php php bin/console lexik:jwt:generate-keypair
 ```
 If all containers are up and running without errors, then the app is ready for usage.
