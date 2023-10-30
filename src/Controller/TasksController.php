@@ -70,7 +70,9 @@ class TasksController extends AbstractController
 
         return $this->json([
             'success' => true,
-            'data' => $tasks
+            'data' => [
+                'tasks' => $tasks
+            ]
         ]);
     }
     #[Route('/api/task/view/{taskId}', methods: ['GET'])]

@@ -21,7 +21,7 @@ services:
   db_mysql:
     image: mysql:5.7
     ports:
-      - "3306:3306"
+      - "33060:3306"
     volumes:
       - db_mysql_vol:/var/lib/mysql
     environment:
