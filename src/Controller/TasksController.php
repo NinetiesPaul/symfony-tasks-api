@@ -2,9 +2,11 @@
 
 namespace App\Controller;
 
+use App\Entity\TaskHistory;
 use DateTime;
 use App\Entity\User;
 use App\Entity\Tasks;
+use App\Repository\TaskHistoryRepository;
 use App\Repository\TasksRepository;
 use App\Repository\UserRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -152,7 +154,7 @@ class TasksController extends AbstractController
     }
 
     #[Route('/api/task/update/{taskId}', methods: ['PUT'])]
-    public function update(ManagerRegistry $doctrine, Request $request, int $taskId): JsonResponse
+    public function update(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, Request $request, int $taskId): JsonResponse
     {
         $request = json_decode($request->getContent());
 
@@ -172,16 +174,20 @@ class TasksController extends AbstractController
                 'message' => "Invalid operation: cannot update a closed task"
             ], Response::HTTP_BAD_REQUEST);
         }
+
+        $storeHistory = false;
    
-        if (!empty($request->title)){
+        if (!empty($request->title) && $task->getTitle() != $request->title){
+            $storeHistory['title'] = [ $task->getTitle(), $request->title ];
             $task->setTitle($request->title);
         }
    
-        if (!empty($request->description)){
+        if (!empty($request->description) && $task->getDescription() != $request->description){
+            $storeHistory['description'] = [ $task->getDescription(), $request->description ];
             $task->setDescription($request->description);
         }
         
-        if (!empty($request->type)) {
+        if (!empty($request->type) && $task->getType() != $request->type) {
             if (!Tasks::allowedTypes($request->type)) {
                 return $this->json([
                     'success' => false,
@@ -189,10 +195,11 @@ class TasksController extends AbstractController
                 ], Response::HTTP_BAD_REQUEST);
             }
 
+            $storeHistory['type'] = [ $task->getType(), $request->type ];
             $task->setType($request->type);
         }
         
-        if (!empty($request->status)) {
+        if (!empty($request->status) && $task->getStatus() != $request->status) {
             if (!Tasks::allowedStatuses($request->status)) {
                 return $this->json([
                     'success' => false,
@@ -207,10 +214,27 @@ class TasksController extends AbstractController
                 ], Response::HTTP_BAD_REQUEST);
             }
 
+            $storeHistory['status'] = [ $task->getStatus(), $request->status ];
             $task->setStatus($request->status);
         }
 
         $taskRep->save($task, true);
+
+        if ($storeHistory) {
+            $taskHistoryRep = new TaskHistoryRepository($doctrine);
+
+            foreach($storeHistory as $field => $history) {
+
+                $taskHistory = new TaskHistory();
+                $taskHistory->setField($field);
+                $taskHistory->setChangedFrom($history[0]);
+                $taskHistory->setChangedTo($history[1]);
+                $taskHistory->setChangedOn(new DateTime());
+                $taskHistory->setChangedBy($user);
+                $taskHistory->setTask($task);
+                $taskHistoryRep->save($taskHistory, true);
+            }
+        }
 
         return $this->json([
             'success' => true,
@@ -259,7 +283,18 @@ class TasksController extends AbstractController
                 'message' => "Invalid operation: cannot close a closed task"
             ], Response::HTTP_BAD_REQUEST);
         }
-   
+
+        $taskHistory = new TaskHistory();
+        $taskHistory->setField('status');
+        $taskHistory->setChangedFrom($task->getStatus());
+        $taskHistory->setChangedTo('closed');
+        $taskHistory->setChangedOn(new DateTime());
+        $taskHistory->setChangedBy($user);
+        $taskHistory->setTask($task);
+        
+        $taskHistoryRep = new TaskHistoryRepository($doctrine);
+        $taskHistoryRep->save($taskHistory, true);
+
         $task->setStatus("closed");
         $task->setClosedOn(new DateTime());
         $task->setClosedBy($user);

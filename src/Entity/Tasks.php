@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\TasksRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -39,6 +41,14 @@ class Tasks
 
     #[ORM\Column(length: 20)]
     private ?string $type = null;
+
+    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskHistory::class, orphanRemoval: true)]
+    private Collection $taskHistories;
+
+    public function __construct()
+    {
+        $this->taskHistories = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -149,5 +159,35 @@ class Tasks
     public static function allowedStatuses(string $status): bool
     {
         return in_array($status, [ 'open', 'closed', 'in_dev', 'blocked', 'in_qa' ]);
+    }
+
+    /**
+     * @return Collection<int, TaskHistory>
+     */
+    public function getTaskHistories(): Collection
+    {
+        return $this->taskHistories;
+    }
+
+    public function addTaskHistory(TaskHistory $taskHistory): self
+    {
+        if (!$this->taskHistories->contains($taskHistory)) {
+            $this->taskHistories->add($taskHistory);
+            $taskHistory->setTask($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTaskHistory(TaskHistory $taskHistory): self
+    {
+        if ($this->taskHistories->removeElement($taskHistory)) {
+            // set the owning side to null (unless already changed)
+            if ($taskHistory->getTask() === $this) {
+                $taskHistory->setTask(null);
+            }
+        }
+
+        return $this;
     }
 }
