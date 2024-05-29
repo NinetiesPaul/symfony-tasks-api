@@ -283,7 +283,18 @@ class TasksController extends AbstractController
                 'message' => "Invalid operation: cannot close a closed task"
             ], Response::HTTP_BAD_REQUEST);
         }
-   
+
+        $taskHistory = new TaskHistory();
+        $taskHistory->setField('status');
+        $taskHistory->setChangedFrom($task->getStatus());
+        $taskHistory->setChangedTo('closed');
+        $taskHistory->setChangedOn(new DateTime());
+        $taskHistory->setChangedBy($user);
+        $taskHistory->setTask($task);
+        
+        $taskHistoryRep = new TaskHistoryRepository($doctrine);
+        $taskHistoryRep->save($taskHistory, true);
+
         $task->setStatus("closed");
         $task->setClosedOn(new DateTime());
         $task->setClosedBy($user);
