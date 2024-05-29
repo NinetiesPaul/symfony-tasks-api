@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\TaskHistoryRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Ignore;
 
 #[ORM\Entity(repositoryClass: TaskHistoryRepository::class)]
 class TaskHistory
@@ -25,6 +26,15 @@ class TaskHistory
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $changedOn = null;
+
+    #[ORM\ManyToOne(fetch: "EAGER")]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $changedBy = null;
+
+    #[ORM\ManyToOne(fetch: "EAGER")]
+    #[ORM\JoinColumn(nullable: false)]
+    #[Ignore]
+    private ?Tasks $task = null;
 
     public function getId(): ?int
     {
@@ -75,6 +85,30 @@ class TaskHistory
     public function setChangedOn(\DateTimeInterface $changedOn): self
     {
         $this->changedOn = $changedOn;
+
+        return $this;
+    }
+
+    public function getChangedBy(): ?User
+    {
+        return $this->changedBy;
+    }
+
+    public function setChangedBy(?User $changedBy): self
+    {
+        $this->changedBy = $changedBy;
+
+        return $this;
+    }
+
+    public function getTask(): ?Tasks
+    {
+        return $this->task;
+    }
+
+    public function setTask(?Tasks $task): self
+    {
+        $this->task = $task;
 
         return $this;
     }
