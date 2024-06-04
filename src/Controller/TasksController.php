@@ -73,10 +73,12 @@ class TasksController extends AbstractController
         return $this->json([
             'success' => true,
             'data' => [
+                'total' => count($tasks),
                 'tasks' => $tasks
             ]
         ]);
     }
+
     #[Route('/api/task/view/{taskId}', methods: ['GET'])]
     public function view(ManagerRegistry $doctrine, int $taskId): JsonResponse
     {
