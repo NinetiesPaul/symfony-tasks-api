@@ -70,13 +70,19 @@ class TasksController extends AbstractController
         
         $tasks = $taskRep->findBy($parameters, [ 'id' => 'DESC' ]);
 
+        foreach ($tasks as $task) {
+            $task->hideHistory();
+        }
+
         return $this->json([
             'success' => true,
             'data' => [
+                'total' => count($tasks),
                 'tasks' => $tasks
             ]
         ]);
     }
+
     #[Route('/api/task/view/{taskId}', methods: ['GET'])]
     public function view(ManagerRegistry $doctrine, int $taskId): JsonResponse
     {
@@ -146,9 +152,10 @@ class TasksController extends AbstractController
         $taskRep = new TasksRepository($doctrine);
         $taskRep->save($task, true);
 
+        $task->hideHistory();
+
         return $this->json([
             'success' => true,
-            'message' => "Task created",
             'data' => $task
         ]);
     }
@@ -236,9 +243,10 @@ class TasksController extends AbstractController
             }
         }
 
+        $task->hideHistory();
+
         return $this->json([
             'success' => true,
-            'message' => "Task updated",
             'data' => $task
         ]);
     }
@@ -259,8 +267,7 @@ class TasksController extends AbstractController
         $taskRep->remove($task, true);
 
         return $this->json([
-            'success' => true,
-            'message' => "Task deleted"
+            'success' => true
         ]);
     }
 
@@ -300,9 +307,10 @@ class TasksController extends AbstractController
         $task->setClosedBy($user);
         $taskRep->save($task, true);
 
+        $task->hideHistory();
+
         return $this->json([
             'success' => true,
-            'message' => "Task closed",
             'data' => $task
         ]);
     }

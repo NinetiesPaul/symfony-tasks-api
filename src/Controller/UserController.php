@@ -19,17 +19,22 @@ class UserController extends AbstractController
     #[Route('/register', methods: ['POST'])]
     public function register(ManagerRegistry $doctrine, Request $request, ValidatorInterface $validator, UserPasswordHasherInterface $passwordHasher): JsonResponse
     {
-        $userRep = new UserRepository($doctrine);
-        $decoded = json_decode($request->getContent());
+        $request = json_decode($request->getContent());
 
         $constraints = new Assert\Collection([
+            'name' => [
+                new Assert\NotBlank(),
+            ],
             'email' => [
+                new Assert\NotBlank(),
                 new Assert\Email(null, "E-mail is not valid"),
+            ],
+            'password' => [
+                new Assert\NotBlank(),
             ],
         ]);
     
-        $validationResult = $validator->validate( [ 'email' => $decoded->email ], $constraints);
-
+        $validationResult = $validator->validate( (array) $request, $constraints);
         if (count($validationResult) > 0) {
             $messages = [];
 
@@ -42,26 +47,25 @@ class UserController extends AbstractController
                 'message' => $messages
             ], Response::HTTP_BAD_REQUEST);
         }
-       
-        $user = $userRep->findBy([ 'email' => $decoded->email ], [ 'id' => 'DESC' ]);
+
+        $userRep = new UserRepository($doctrine);
+        $user = $userRep->findBy([ 'email' => $request->email ], [ 'id' => 'DESC' ]);
         if ($user) {
             return $this->json([
                 'success' => false,
                 'message' => "E-mail already taken"
             ], Response::HTTP_NOT_FOUND);
         }
-        
-        $email = $decoded->email;
-        $plaintextPassword = $decoded->password;
-  
+
         $user = new User();
         $hashedPassword = $passwordHasher->hashPassword(
             $user,
-            $plaintextPassword
+            $request->password
         );
 
+        $user->setName($request->name);
+        $user->setEmail($request->email);
         $user->setPassword($hashedPassword);
-        $user->setEmail($email);
 
         $userRep = new UserRepository($doctrine);
         $userRep->save($user, true);

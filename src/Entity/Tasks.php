@@ -42,12 +42,12 @@ class Tasks
     #[ORM\Column(length: 20)]
     private ?string $type = null;
 
-    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskHistory::class, orphanRemoval: true)]
-    private Collection $taskHistories;
+    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskHistory::class)]
+    private ?Collection $history;
 
     public function __construct()
     {
-        $this->taskHistories = new ArrayCollection();
+        $this->history = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -164,30 +164,35 @@ class Tasks
     /**
      * @return Collection<int, TaskHistory>
      */
-    public function getTaskHistories(): Collection
+    public function getHistory(): ?Collection
     {
-        return $this->taskHistories;
+        return $this->history;
     }
 
-    public function addTaskHistory(TaskHistory $taskHistory): self
+    public function addHistory(TaskHistory $history): self
     {
-        if (!$this->taskHistories->contains($taskHistory)) {
-            $this->taskHistories->add($taskHistory);
-            $taskHistory->setTask($this);
+        if (!$this->history->contains($history)) {
+            $this->history->add($history);
+            $history->setTask($this);
         }
 
         return $this;
     }
 
-    public function removeTaskHistory(TaskHistory $taskHistory): self
+    public function removeHistory(TaskHistory $history): self
     {
-        if ($this->taskHistories->removeElement($taskHistory)) {
+        if ($this->history->removeElement($history)) {
             // set the owning side to null (unless already changed)
-            if ($taskHistory->getTask() === $this) {
-                $taskHistory->setTask(null);
+            if ($history->getTask() === $this) {
+                $history->setTask(null);
             }
         }
 
         return $this;
+    }
+
+    public function hideHistory(): void
+    {
+        unset($this->history);
     }
 }
