@@ -70,6 +70,10 @@ class TasksController extends AbstractController
         
         $tasks = $taskRep->findBy($parameters, [ 'id' => 'DESC' ]);
 
+        foreach ($tasks as $task) {
+            $task->hideHistory();
+        }
+
         return $this->json([
             'success' => true,
             'data' => [
@@ -147,6 +151,8 @@ class TasksController extends AbstractController
 
         $taskRep = new TasksRepository($doctrine);
         $taskRep->save($task, true);
+
+        $task->hideHistory();
 
         return $this->json([
             'success' => true,
@@ -237,6 +243,8 @@ class TasksController extends AbstractController
             }
         }
 
+        $task->hideHistory();
+
         return $this->json([
             'success' => true,
             'data' => $task
@@ -298,6 +306,8 @@ class TasksController extends AbstractController
         $task->setClosedOn(new DateTime());
         $task->setClosedBy($user);
         $taskRep->save($task, true);
+
+        $task->hideHistory();
 
         return $this->json([
             'success' => true,
