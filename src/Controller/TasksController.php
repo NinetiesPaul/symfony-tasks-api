@@ -150,7 +150,6 @@ class TasksController extends AbstractController
 
         return $this->json([
             'success' => true,
-            'message' => "Task created",
             'data' => $task
         ]);
     }
@@ -240,7 +239,6 @@ class TasksController extends AbstractController
 
         return $this->json([
             'success' => true,
-            'message' => "Task updated",
             'data' => $task
         ]);
     }
@@ -261,8 +259,7 @@ class TasksController extends AbstractController
         $taskRep->remove($task, true);
 
         return $this->json([
-            'success' => true,
-            'message' => "Task deleted"
+            'success' => true
         ]);
     }
 
@@ -304,7 +301,6 @@ class TasksController extends AbstractController
 
         return $this->json([
             'success' => true,
-            'message' => "Task closed",
             'data' => $task
         ]);
     }
