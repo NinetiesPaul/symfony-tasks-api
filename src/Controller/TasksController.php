@@ -26,18 +26,15 @@ class TasksController extends AbstractController
     {
         $taskRep = new TasksRepository($doctrine);
 
-        $parameters = [];
-
         $typeQueryParameter = $request->query->get('type');
         $statusQueryParameter = $request->query->get('status');
         $createdByQueryParameter = $request->query->get('created_by');
 
+        $parameters = [];
+        $parametersErrors = [];
         if ($typeQueryParameter !== null) {
             if (!Tasks::allowedTypes($typeQueryParameter)) {
-                return $this->json([
-                    'success' => false,
-                    'message' => "Invalid task type: must be one of 'feature' 'bugfix' 'hotfix'"
-                ], Response::HTTP_BAD_REQUEST);
+                $parametersErrors[] = "INVALID_TASK_TYPE";
             }
 
             $parameters['type'] = $request->query->get('type');
@@ -45,10 +42,7 @@ class TasksController extends AbstractController
         
         if ($statusQueryParameter !== null) {
             if (!Tasks::allowedStatuses($statusQueryParameter)) {
-                return $this->json([
-                    'success' => false,
-                    'message' => "Invalid task status: must be one of 'open' 'closed' 'in_dev' 'blocked' 'in_qa'"
-                ], Response::HTTP_BAD_REQUEST);
+                $parametersErrors[] = "INVALID_TASK_STATUS";
             }
 
             $parameters['status'] = $request->query->get('status');
@@ -59,13 +53,17 @@ class TasksController extends AbstractController
             $user = $userRep->find($createdByQueryParameter);
 
             if (!$user) {
-                return $this->json([
-                    'success' => false,
-                    'message' => "No user found with given id"
-                ], Response::HTTP_NOT_FOUND);
+                $parametersErrors[] = "USER_NOT_FOUND";
             }
 
             $parameters['createdBy'] = $request->query->get('created_by');
+        }
+
+        if ($parametersErrors) {
+            return $this->json([
+                'success' => false,
+                'message' => $parametersErrors
+            ], Response::HTTP_BAD_REQUEST);
         }
         
         $tasks = $taskRep->findBy($parameters, [ 'id' => 'DESC' ]);
@@ -92,7 +90,7 @@ class TasksController extends AbstractController
         if (!$task) {
             return $this->json([
                 'success' => false,
-                'message' => "No task found with given id"
+                'message' => [ "TASK_NOT_FOUND" ]
             ], Response::HTTP_NOT_FOUND);
         }
 
@@ -106,38 +104,38 @@ class TasksController extends AbstractController
     public function create(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, ValidatorInterface $validator, Request $request): JsonResponse
     {
         $request = json_decode($request->getContent());
-
-        $constraints = new Assert\Collection([
-            'title' => [
-                new Assert\NotBlank(),
-            ],
-            'description' => [
-                new Assert\NotBlank(),
-            ],
-            'type' => [
-                new Assert\NotBlank(),
-            ],
-        ]);
     
-        $validationResult = $validator->validate((array) $request, $constraints);
+        $validationResult = $validator->validate((array) $request,
+            new Assert\Collection([
+                'title' => [
+                    new Assert\Required(),
+                    new Assert\NotBlank(null, "EMPTY_TITLE"),
+                    new Assert\Type("string", "TITLE_NOT_STRING"),
+                ],
+                'description' => [
+                    new Assert\Required(),
+                    new Assert\NotBlank(null, "EMPTY_DESCRIPTION"),
+                    new Assert\Type("string", "DESCRIPTION_NOT_STRING"),
+                ],
+                'type' => [
+                    new Assert\Required(),
+                    new Assert\NotBlank(null, "EMPTY_TYPE"),
+                    new Assert\Type("string", "TYPE_NOT_STRING"),
+                    new Assert\Choice([], [ 'feature', 'bugfix', 'hotfix' ], null, null, null, null, null, "INVALID_TASK_TYPE"),
+                ],
+            ])
+        );
 
         if (count($validationResult) > 0) {
             $messages = [];
 
             foreach ($validationResult as $error) {
-                $messages[] = $error->getPropertyPath() . " " . $error->getMessage();
+                $messages[] = (($error->getMessage() == "This field is missing.") ? "MISSING_" . strtoupper(str_replace([ "[", "]" ], "", $error->getPropertyPath())) : $error->getMessage());
             }
             
             return $this->json([
                 'success' => false,
                 'message' => $messages
-            ], Response::HTTP_BAD_REQUEST);
-        }
-
-        if (!Tasks::allowedTypes($request->type)) {
-            return $this->json([
-                'success' => false,
-                'message' => "Invalid task type: must be one of 'feature' 'bugfix' 'hotfix'"
             ], Response::HTTP_BAD_REQUEST);
         }
         
@@ -161,68 +159,102 @@ class TasksController extends AbstractController
     }
 
     #[Route('/api/task/update/{taskId}', methods: ['PUT'])]
-    public function update(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, Request $request, int $taskId): JsonResponse
+    public function update(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, ValidatorInterface $validator, Request $request, int $taskId): JsonResponse
     {
-        $request = json_decode($request->getContent());
-
         $taskRep = new TasksRepository($doctrine);
         $task = $taskRep->find($taskId);
 
         if (!$task) {
             return $this->json([
                 'success' => false,
-                'message' => "No task found with given id"
+                'message' => [ "TASK_NOT_FOUND" ]
             ], Response::HTTP_NOT_FOUND);
         }
 
         if ($task->getStatus() == "closed") {
             return $this->json([
                 'success' => false,
-                'message' => "Invalid operation: cannot update a closed task"
+                'message' => [ "TASK_CLOSED" ]
             ], Response::HTTP_BAD_REQUEST);
         }
 
         $storeHistory = false;
+        $request = json_decode($request->getContent());
+        $constraints = [];
    
-        if (!empty($request->title) && $task->getTitle() != $request->title){
-            $storeHistory['title'] = [ $task->getTitle(), $request->title ];
+        if (isset($request->title)){
+            if ($task->getTitle() != $request->title) {
+                $storeHistory['title'] = [ $task->getTitle(), $request->title ];
+            }
             $task->setTitle($request->title);
+
+            $constraints['title'] = [
+                new Assert\NotBlank(null, "EMPTY_TITLE"),
+                new Assert\Type("string", "TITLE_NOT_STRING"),
+            ];
         }
    
-        if (!empty($request->description) && $task->getDescription() != $request->description){
-            $storeHistory['description'] = [ $task->getDescription(), $request->description ];
+        if (isset($request->description)){
+            if ($task->getDescription() != $request->description) {
+                $storeHistory['description'] = [ $task->getDescription(), $request->description ];
+            }
             $task->setDescription($request->description);
+
+            $constraints['description'] = [
+                new Assert\NotBlank(null, "EMPTY_DESCRIPTION"),
+                new Assert\Type("string", "DESCRIPTION_NOT_STRING"),
+            ];
         }
         
-        if (!empty($request->type) && $task->getType() != $request->type) {
-            if (!Tasks::allowedTypes($request->type)) {
-                return $this->json([
-                    'success' => false,
-                    'message' => "Invalid task type: must be one of 'feature' 'bugfix' 'hotfix'"
-                ], Response::HTTP_BAD_REQUEST);
+        if (isset($request->type)) {
+            if ($task->getType() != $request->type) {
+                $storeHistory['type'] = [ $task->getType(), $request->type ];
             }
-
-            $storeHistory['type'] = [ $task->getType(), $request->type ];
             $task->setType($request->type);
+
+            $constraints['type'] = [
+                new Assert\NotBlank(null, "EMPTY_TYPE"),
+                new Assert\Type("string", "TYPE_NOT_STRING"),
+                new Assert\Choice([], [ 'feature', 'bugfix', 'hotfix' ], null, null, null, null, null, "INVALID_TASK_TYPE"),
+            ];
         }
         
-        if (!empty($request->status) && $task->getStatus() != $request->status) {
-            if (!Tasks::allowedStatuses($request->status)) {
+        if (isset($request->status)) {
+            if ($request->status === "closed") {
                 return $this->json([
                     'success' => false,
-                    'message' => "Invalid task status: must be one of 'open' 'closed' 'in_dev' 'blocked' 'in_qa'"
+                    'message' => [ "CAN_NOT_UPDATE_TO_CLOSE" ]
                 ], Response::HTTP_BAD_REQUEST);
             }
-
-            if ($request->status === 'closed') {
-                return $this->json([
-                    'success' => false,
-                    'message' => 'Invalid operation: use PUT /api/task/close/{id} to close a task'
-                ], Response::HTTP_BAD_REQUEST);
+            if ($task->getStatus() != $request->status) {
+                $storeHistory['status'] = [ $task->getStatus(), $request->status ];
             }
-
-            $storeHistory['status'] = [ $task->getStatus(), $request->status ];
             $task->setStatus($request->status);
+
+            $constraints['status'] = [
+                new Assert\NotBlank(null, "EMPTY_STATUS"),
+                new Assert\Type("string", "STATUS_NOT_STRING"),
+                new Assert\Choice([], [ 'open', 'closed', 'in_dev', 'blocked', 'in_qa' ], null, null, null, null, null, "INVALID_TASK_STATUS"),
+            ];
+        }
+
+        if (count($constraints) > 0) {
+            $validationResult = $validator->validate((array) $request,
+                new Assert\Collection($constraints)
+            );
+
+            if (count($validationResult) > 0) {
+                $messages = [];
+    
+                foreach ($validationResult as $error) {
+                    $messages[] = $error->getMessage();
+                }
+                
+                return $this->json([
+                    'success' => false,
+                    'message' => $messages
+                ], Response::HTTP_BAD_REQUEST);
+            }
         }
 
         $taskRep->save($task, true);
@@ -280,14 +312,14 @@ class TasksController extends AbstractController
         if (!$task) {
             return $this->json([
                 'success' => false,
-                'message' => "No task found with given id"
+                'message' => [ "TASK_NOT_FOUND" ]
             ], Response::HTTP_NOT_FOUND);
         }
 
         if ($task->getStatus() == "closed") {
             return $this->json([
                 'success' => false,
-                'message' => "Invalid operation: cannot close a closed task"
+                'message' => [ "TASK_ALREADY_CLOSED" ]
             ], Response::HTTP_BAD_REQUEST);
         }
 
