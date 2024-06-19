@@ -21,25 +21,31 @@ class UserController extends AbstractController
     {
         $request = json_decode($request->getContent());
 
-        $constraints = new Assert\Collection([
-            'name' => [
-                new Assert\NotBlank(),
-            ],
-            'email' => [
-                new Assert\NotBlank(),
-                new Assert\Email(null, "E-mail is not valid"),
-            ],
-            'password' => [
-                new Assert\NotBlank(),
-            ],
-        ]);
-    
-        $validationResult = $validator->validate( (array) $request, $constraints);
+        $validationResult = $validator->validate((array) $request,
+            new Assert\Collection([  
+                'name' => [
+                    new Assert\Required(),
+                    new Assert\NotBlank(null, "EMPTY_NAME"),
+                    new Assert\Type("string", "NAME_NOT_STRING"),
+                ],
+                'email' => [
+                    new Assert\Required(),
+                    new Assert\NotBlank(null, "EMPTY_EMAIL"),
+                    new Assert\Email(null, "INVALID_EMAIL"),
+                    new Assert\Type("string", "EMAIL_NOT_STRING"),
+                ],
+                'password' => [
+                    new Assert\Required(),
+                    new Assert\NotBlank(null, "EMPTY_PASSWORD"),
+                    new Assert\Type("string", "PASSWORD_NOT_STRING"),
+                ],
+            ])
+        );
+
         if (count($validationResult) > 0) {
             $messages = [];
-
             foreach ($validationResult as $error) {
-                $messages[] = $error->getPropertyPath() . " " . $error->getMessage();
+                $messages[] = (($error->getMessage() == "This field is missing.") ? "MISSING_" . strtoupper(str_replace([ "[", "]" ], "", $error->getPropertyPath())) : $error->getMessage());
             }
             
             return $this->json([
@@ -53,7 +59,7 @@ class UserController extends AbstractController
         if ($user) {
             return $this->json([
                 'success' => false,
-                'message' => "E-mail already taken"
+                'message' => [ "EMAIL_ALREADY_TAKEN" ]
             ], Response::HTTP_NOT_FOUND);
         }
 
