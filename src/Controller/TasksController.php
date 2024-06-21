@@ -34,7 +34,7 @@ class TasksController extends AbstractController
         $parametersErrors = [];
         if ($typeQueryParameter !== null) {
             if (!Tasks::allowedTypes($typeQueryParameter)) {
-                $parametersErrors[] = "INVALID_TASK_TYPE";
+                $parametersErrors[] = "INVALID_TYPE";
             }
 
             $parameters['type'] = $request->query->get('type');
@@ -42,7 +42,7 @@ class TasksController extends AbstractController
         
         if ($statusQueryParameter !== null) {
             if (!Tasks::allowedStatuses($statusQueryParameter)) {
-                $parametersErrors[] = "INVALID_TASK_STATUS";
+                $parametersErrors[] = "INVALID_STATUS";
             }
 
             $parameters['status'] = $request->query->get('status');
@@ -121,7 +121,7 @@ class TasksController extends AbstractController
                     new Assert\Required(),
                     new Assert\NotBlank(null, "EMPTY_TYPE"),
                     new Assert\Type("string", "TYPE_NOT_STRING"),
-                    new Assert\Choice([], [ 'feature', 'bugfix', 'hotfix' ], null, null, null, null, null, "INVALID_TASK_TYPE"),
+                    new Assert\Choice([], [ 'feature', 'bugfix', 'hotfix' ], null, null, null, null, null, "INVALID_TYPE"),
                 ],
             ])
         );
@@ -215,7 +215,7 @@ class TasksController extends AbstractController
             $constraints['type'] = [
                 new Assert\NotBlank(null, "EMPTY_TYPE"),
                 new Assert\Type("string", "TYPE_NOT_STRING"),
-                new Assert\Choice([], [ 'feature', 'bugfix', 'hotfix' ], null, null, null, null, null, "INVALID_TASK_TYPE"),
+                new Assert\Choice([], [ 'feature', 'bugfix', 'hotfix' ], null, null, null, null, null, "INVALID_TYPE"),
             ];
         }
         
@@ -234,7 +234,7 @@ class TasksController extends AbstractController
             $constraints['status'] = [
                 new Assert\NotBlank(null, "EMPTY_STATUS"),
                 new Assert\Type("string", "STATUS_NOT_STRING"),
-                new Assert\Choice([], [ 'open', 'closed', 'in_dev', 'blocked', 'in_qa' ], null, null, null, null, null, "INVALID_TASK_STATUS"),
+                new Assert\Choice([], [ 'open', 'closed', 'in_dev', 'blocked', 'in_qa' ], null, null, null, null, null, "INVALID_STATUS"),
             ];
         }
 
