@@ -45,9 +45,13 @@ class Tasks
     #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskHistory::class)]
     private ?Collection $history;
 
+    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskAssignee::class)]
+    private Collection $taskAssignees;
+
     public function __construct()
     {
         $this->history = new ArrayCollection();
+        $this->taskAssignees = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -194,5 +198,35 @@ class Tasks
     public function hideHistory(): void
     {
         unset($this->history);
+    }
+
+    /**
+     * @return Collection<int, TaskAssignee>
+     */
+    public function getAssignees(): Collection
+    {
+        return $this->taskAssignees;
+    }
+
+    public function addTaskAssignee(TaskAssignee $taskAssignee): static
+    {
+        if (!$this->taskAssignees->contains($taskAssignee)) {
+            $this->taskAssignees->add($taskAssignee);
+            $taskAssignee->setTask($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTaskAssignee(TaskAssignee $taskAssignee): static
+    {
+        if ($this->taskAssignees->removeElement($taskAssignee)) {
+            // set the owning side to null (unless already changed)
+            if ($taskAssignee->getTask() === $this) {
+                $taskAssignee->setTask(null);
+            }
+        }
+
+        return $this;
     }
 }
