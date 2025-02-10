@@ -84,4 +84,19 @@ class UserController extends AbstractController
 
     #[Route('/login', methods: ['POST'])]
     public function login(): void {}
+
+    #[Route('/api/users/list', methods: ['GET'])]
+    public function list(ManagerRegistry $doctrine): JsonResponse
+    {
+        $userRep = new UserRepository($doctrine);
+        $users = $userRep->findAll();
+
+        return $this->json([
+            'success' => true,
+            'data' => [
+                'total' => count($users),
+                'users' => $users
+            ]
+        ]);
+    }
 }
