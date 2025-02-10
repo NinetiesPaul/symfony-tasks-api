@@ -2,13 +2,15 @@
 
 namespace App\Controller;
 
-use App\Entity\TaskHistory;
 use DateTime;
+use App\Entity\TaskAssignee;
+use App\Entity\TaskHistory;
 use App\Entity\User;
 use App\Entity\Tasks;
+use App\Repository\TaskAssigneeRepository;
 use App\Repository\TaskHistoryRepository;
-use App\Repository\TasksRepository;
 use App\Repository\UserRepository;
+use App\Repository\TasksRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +31,7 @@ class TasksController extends AbstractController
         $typeQueryParameter = $request->query->get('type');
         $statusQueryParameter = $request->query->get('status');
         $createdByQueryParameter = $request->query->get('created_by');
+        $assignedToUserParameter = $request->query->get('assigned');
 
         $parameters = [];
         $parametersErrors = [];
@@ -58,6 +61,10 @@ class TasksController extends AbstractController
 
             $parameters['createdBy'] = $request->query->get('created_by');
         }
+        
+        if ($assignedToUserParameter !== null) {
+            $assignedToUserParameter = ($request->query->get('assigned') === "false") ? false : true;
+        }
 
         if ($parametersErrors) {
             return $this->json([
@@ -67,16 +74,21 @@ class TasksController extends AbstractController
         }
         
         $tasks = $taskRep->findBy($parameters, [ 'id' => 'DESC' ]);
+        $result = [];
 
-        foreach ($tasks as $task) {
+        foreach ($tasks as &$task) {
+            if (!is_null($assignedToUserParameter) && (!$assignedToUserParameter && count($task->getAssignees()) > 0) || ($assignedToUserParameter && count($task->getAssignees()) == 0)) {
+                continue;
+            }
             $task->hideHistory();
+            $result[] = $task;
         }
 
         return $this->json([
             'success' => true,
             'data' => [
-                'total' => count($tasks),
-                'tasks' => $tasks
+                'total' => count($result),
+                'tasks' => $result
             ]
         ]);
     }
@@ -344,6 +356,95 @@ class TasksController extends AbstractController
         return $this->json([
             'success' => true,
             'data' => $task
+        ]);
+    }
+
+    #[Route('/api/task/assign/{taskId}', methods: ['POST'])]
+    public function assign(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, Request $request, int $taskId): JsonResponse
+    {
+        $request = json_decode($request->getContent());
+
+        $taskRep = new TasksRepository($doctrine);
+        $task = $taskRep->find($taskId);
+
+        if (!$task) {
+            return $this->json([
+                'success' => false,
+                'message' => [ "TASK_NOT_FOUND" ]
+            ], Response::HTTP_NOT_FOUND);
+        }
+        
+        $userRep = new UserRepository($doctrine);
+        $assignedTo = $userRep->find($request->assigned_to);
+
+        if (!$assignedTo) {
+            return $this->json([
+                'success' => false,
+                'message' => [ "USER_NOT_FOUND" ]
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $taskAssigneeRep = new TaskAssigneeRepository($doctrine);
+        $taskAlreadyAssignedTo = $taskAssigneeRep->findOneBy([ 'assignedTo' => $assignedTo, 'task' => $task ]);
+        if ($taskAlreadyAssignedTo) {
+            return $this->json([
+                'success' => false,
+                'message' => [ "USER_ALREADY_ASSIGNED" ]
+            ], Response::HTTP_ACCEPTED);
+        }
+
+        $taskAssignee = new TaskAssignee();
+        $taskAssignee->setAssignedBy($user);
+        $taskAssignee->setAssignedTo($assignedTo);
+        $taskAssignee->setTask($task);
+        
+        $taskAssigneeRep->save($taskAssignee, true);
+
+        $taskHistory = new TaskHistory();
+        $taskHistory->setField('added_assignee');
+        $taskHistory->setChangedFrom("");
+        $taskHistory->setChangedTo($assignedTo->getName());
+        $taskHistory->setChangedOn(new DateTime());
+        $taskHistory->setChangedBy($user);
+        $taskHistory->setTask($task);
+        
+        $taskHistoryRep = new TaskHistoryRepository($doctrine);
+        $taskHistoryRep->save($taskHistory, true);
+
+        return $this->json([
+            'success' => true,
+            'data' => $taskAssignee
+        ]);
+    }
+
+    #[Route('/api/task/unassign/{assignmentId}', methods: ['DELETE'])]
+    public function unassign(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, int $assignmentId): JsonResponse
+    {
+        $taskAssignmentRep = new TaskAssigneeRepository($doctrine);
+        $taskAssignment = $taskAssignmentRep->find($assignmentId);
+
+        if (!$taskAssignment) {
+            return $this->json([
+                'success' => false,
+                'message' => [ "ASSIGNMENT_NOT_FOUND" ]
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $taskAssignmentRep->remove($taskAssignment, true);
+
+        $taskHistory = new TaskHistory();
+        $taskHistory->setField('removed_assignee');
+        $taskHistory->setChangedFrom("");
+        $taskHistory->setChangedTo($taskAssignment->getAssignedTo()->getName());
+        $taskHistory->setChangedOn(new DateTime());
+        $taskHistory->setChangedBy($user);
+        $taskHistory->setTask($taskAssignment->getTask());
+        
+        $taskHistoryRep = new TaskHistoryRepository($doctrine);
+        $taskHistoryRep->save($taskHistory, true);
+
+        return $this->json([
+            'success' => true
         ]);
     }
 }
