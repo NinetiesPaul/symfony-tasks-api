@@ -4,10 +4,12 @@ namespace App\Controller;
 
 use DateTime;
 use App\Entity\TaskAssignee;
+use App\Entity\TaskComments;
 use App\Entity\TaskHistory;
 use App\Entity\User;
 use App\Entity\Tasks;
 use App\Repository\TaskAssigneeRepository;
+use App\Repository\TaskCommentsRepository;
 use App\Repository\TaskHistoryRepository;
 use App\Repository\UserRepository;
 use App\Repository\TasksRepository;
@@ -442,6 +444,58 @@ class TasksController extends AbstractController
         
         $taskHistoryRep = new TaskHistoryRepository($doctrine);
         $taskHistoryRep->save($taskHistory, true);
+
+        return $this->json([
+            'success' => true
+        ]);
+    }
+
+    #[Route('/api/task/comment/{taskId}', methods: ['POST'])]
+    public function addComment(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, Request $request, int $taskId): JsonResponse
+    {
+        $request = json_decode($request->getContent());
+
+        $taskRep = new TasksRepository($doctrine);
+        $task = $taskRep->find($taskId);
+
+        if (!$task) {
+            return $this->json([
+                'success' => false,
+                'message' => [ "TASK_NOT_FOUND" ]
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $taskComment = new TaskComments();
+        $taskComment->setCommentText($request->text);
+        $taskComment->setTask($task);
+        $taskComment->setCreatedBy($user);
+        $taskComment->setCreatedOn(new DateTime());
+        
+        $taskCommentsRep = new TaskCommentsRepository($doctrine);
+        $taskCommentsRep->save($taskComment, true);
+
+        return $this->json([
+            'success' => true,
+            'data' => $taskComment
+        ]);
+    }
+
+    #[Route('/api/task/comment/{commentId}', methods: ['DELETE'])]
+    public function deleteComment(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, Request $request, int $commentId): JsonResponse
+    {
+        $request = json_decode($request->getContent());
+
+        $taskCommentsRep = new TaskCommentsRepository($doctrine);
+        $taskComment = $taskCommentsRep->find($commentId);
+
+        if (!$taskComment) {
+            return $this->json([
+                'success' => false,
+                'message' => [ "COMMENT_NOT_FOUND" ]
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $taskCommentsRep->remove($taskComment, true);
 
         return $this->json([
             'success' => true
