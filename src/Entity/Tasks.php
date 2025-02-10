@@ -48,10 +48,14 @@ class Tasks
     #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskAssignee::class)]
     private Collection $taskAssignees;
 
+    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskComments::class)]
+    private Collection $comments;
+
     public function __construct()
     {
         $this->history = new ArrayCollection();
         $this->taskAssignees = new ArrayCollection();
+        $this->comments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -224,6 +228,36 @@ class Tasks
             // set the owning side to null (unless already changed)
             if ($taskAssignee->getTask() === $this) {
                 $taskAssignee->setTask(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, TaskComments>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(TaskComments $comment): static
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments->add($comment);
+            $comment->setTask($this);
+        }
+
+        return $this;
+    }
+
+    public function removeComment(TaskComments $comment): static
+    {
+        if ($this->comments->removeElement($comment)) {
+            // set the owning side to null (unless already changed)
+            if ($comment->getTask() === $this) {
+                $comment->setTask(null);
             }
         }
 
