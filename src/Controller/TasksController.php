@@ -451,9 +451,32 @@ class TasksController extends AbstractController
     }
 
     #[Route('/api/task/comment/{taskId}', methods: ['POST'])]
-    public function addComment(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, Request $request, int $taskId): JsonResponse
+    public function addComment(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, ValidatorInterface $validator, Request $request, int $taskId): JsonResponse
     {
         $request = json_decode($request->getContent());
+    
+        $validationResult = $validator->validate((array) $request,
+            new Assert\Collection([
+                'text' => [
+                    new Assert\Required(),
+                    new Assert\NotBlank(null, "EMPTY_TEXT"),
+                    new Assert\Type("string", "TEXT_NOT_STRING"),
+                ],
+            ])
+        );
+
+        if (count($validationResult) > 0) {
+            $messages = [];
+
+            foreach ($validationResult as $error) {
+                $messages[] = (($error->getMessage() == "This field is missing.") ? "MISSING_" . strtoupper(str_replace([ "[", "]" ], "", $error->getPropertyPath())) : $error->getMessage());
+            }
+            
+            return $this->json([
+                'success' => false,
+                'message' => $messages
+            ], Response::HTTP_BAD_REQUEST);
+        }
 
         $taskRep = new TasksRepository($doctrine);
         $task = $taskRep->find($taskId);
