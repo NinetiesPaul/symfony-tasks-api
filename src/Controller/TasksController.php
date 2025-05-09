@@ -362,7 +362,7 @@ class TasksController extends AbstractController
     }
 
     #[Route('/api/task/assign/{taskId}', methods: ['POST'])]
-    public function assign(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, Request $request, int $taskId): JsonResponse
+    public function assign(ManagerRegistry $doctrine, #[CurrentUser] ?User $user, ValidatorInterface $validator, Request $request, int $taskId): JsonResponse
     {
         $request = json_decode($request->getContent());
 
@@ -375,7 +375,29 @@ class TasksController extends AbstractController
                 'message' => [ "TASK_NOT_FOUND" ]
             ], Response::HTTP_NOT_FOUND);
         }
-        
+
+        $validationResult = $validator->validate((array) $request,
+            new Assert\Collection([
+                'assigned_to' => [
+                    new Assert\Required(),
+                    new Assert\Type("int", "ASSIGNED_TO_NOT_INTEGER"),
+                ],
+            ])
+        );
+
+        if (count($validationResult) > 0) {
+            $messages = [];
+
+            foreach ($validationResult as $error) {
+                $messages[] = (($error->getMessage() == "This field is missing.") ? "MISSING_" . strtoupper(str_replace([ "[", "]" ], "", $error->getPropertyPath())) : $error->getMessage());
+            }
+            
+            return $this->json([
+                'success' => false,
+                'message' => $messages
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
         $userRep = new UserRepository($doctrine);
         $assignedTo = $userRep->find($request->assigned_to);
 
