@@ -82,7 +82,7 @@ class TasksController extends AbstractController
             if (!is_null($assignedToUserParameter) && (!$assignedToUserParameter && count($task->getAssignees()) > 0) || ($assignedToUserParameter && count($task->getAssignees()) == 0)) {
                 continue;
             }
-            $task->hideHistory();
+            $task->hideFields([ 'comments', 'history' ]);
             $result[] = $task;
         }
 
@@ -164,7 +164,7 @@ class TasksController extends AbstractController
         $taskRep = new TasksRepository($doctrine);
         $taskRep->save($task, true);
 
-        $task->hideHistory();
+        $task->hideFields([ 'assignees', 'comments', 'history' ]);
 
         return $this->json([
             'success' => true,
@@ -289,8 +289,6 @@ class TasksController extends AbstractController
             }
         }
 
-        $task->hideHistory();
-
         return $this->json([
             'success' => true,
             'data' => $task
@@ -352,8 +350,6 @@ class TasksController extends AbstractController
         $task->setClosedOn(new DateTime());
         $task->setClosedBy($user);
         $taskRep->save($task, true);
-
-        $task->hideHistory();
 
         return $this->json([
             'success' => true,

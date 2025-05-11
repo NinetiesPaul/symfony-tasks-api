@@ -46,7 +46,7 @@ class Tasks
     private ?Collection $history;
 
     #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskAssignee::class)]
-    private Collection $taskAssignees;
+    private Collection $assignees;
 
     #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskComments::class)]
     private Collection $comments;
@@ -54,7 +54,7 @@ class Tasks
     public function __construct()
     {
         $this->history = new ArrayCollection();
-        $this->taskAssignees = new ArrayCollection();
+        $this->assignees = new ArrayCollection();
         $this->comments = new ArrayCollection();
     }
 
@@ -199,9 +199,11 @@ class Tasks
         return $this;
     }
 
-    public function hideHistory(): void
+    public function hideFields(array $fields): void
     {
-        unset($this->history);
+        foreach ($fields as $field) {
+            unset($this->{$field});
+        }
     }
 
     /**
@@ -209,13 +211,13 @@ class Tasks
      */
     public function getAssignees(): Collection
     {
-        return $this->taskAssignees;
+        return $this->assignees;
     }
 
     public function addTaskAssignee(TaskAssignee $taskAssignee): static
     {
-        if (!$this->taskAssignees->contains($taskAssignee)) {
-            $this->taskAssignees->add($taskAssignee);
+        if (!$this->assignees->contains($taskAssignee)) {
+            $this->assignees->add($taskAssignee);
             $taskAssignee->setTask($this);
         }
 
@@ -224,7 +226,7 @@ class Tasks
 
     public function removeTaskAssignee(TaskAssignee $taskAssignee): static
     {
-        if ($this->taskAssignees->removeElement($taskAssignee)) {
+        if ($this->assignees->removeElement($taskAssignee)) {
             // set the owning side to null (unless already changed)
             if ($taskAssignee->getTask() === $this) {
                 $taskAssignee->setTask(null);
