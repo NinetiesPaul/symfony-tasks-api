@@ -1,4 +1,4 @@
-FROM php:8.2-fpm
+FROM php:8.1-fpm
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
@@ -22,3 +22,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --enable-gd
 RUN docker-php-ext-install mysqli pdo_mysql pdo_pgsql gd
 
 RUN docker-php-ext-enable gd
+
+RUN pecl install xdebug-3.1.5
+
+RUN docker-php-ext-enable xdebug
