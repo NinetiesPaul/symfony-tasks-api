@@ -37,6 +37,18 @@ docker-compose exec php php bin/console doctrine:migrations:migrate
 docker-compose exec php php bin/console lexik:jwt:generate-keypair
 ```
 If all containers are up and running without errors, then the app is ready for usage.
+
+## Tests
+Before running the integration tests to validate the application's features, it must be executed the command to run the migration. Symfony by default creates a separate database for tests, so the following must be executed:
+```
+docker-compose exec php php bin/console doctrine:migrations:migrate --env=test
+```
+
+Once the migratiom finishes, just run
+```
+docker-compose exec php php vendor/bin/phpunit tests/
+```
+
 ## Usage
 ### __Users__
 #### User creation
