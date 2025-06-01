@@ -1,18 +1,21 @@
-## Tasks API in PHP's Symfony
-A simple API using PHP's Symfony. It has some basic functions, like:
+## Tasks API in PHP
+This is a RESTful API application for managing tasks and issues. The technology used here is PHP, and the main purpose of this project is to showcase my understanding of key features under this technology, such as:
 
+- Requests performing CRUD operations
 - User registration and authentication using JWT
-- Perform CRUD operations of Tasks
 - Some basics business rules enforced
-
-My main goal is to showcase some concepts, such as:
-
 - Migrations and model relationship
 - Authentication configuration
 - Routes definitions
 - SOLID and KISS principles on a MVC architecture
+- Unit/Integration testing
 
-The main tech behind it is PHP, mainly the Symfony framework. I'm also using some others libraries. For storaging, i'm using MySQL relational database
+The main tech behind it is PHP with the Symfony framework, to showcase it's cleanliness and simplicity while maintaning a robust architecture. For storaging i'm using relational databases managed with Doctrine
+
+## Environment setup
+To run this application you must have installed on your environment:
+
+* `Docker` - To setup the application's container and environment
 
 ## Installation and Configuration
 This app uses Docker, so you should have it up and running beforehand. Then clone this rep and cd into the project's folder. Before anything create a local copy of the .env file by running: 
