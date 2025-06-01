@@ -17,9 +17,14 @@ The main tech behind it is PHP, mainly the Symfony framework. I'm also using som
 ## Installation and Configuration
 This app uses Docker, so you should have it up and running beforehand. Then clone this rep and cd into the project's folder. Before anything create a local copy of the .env file by running: 
 ```
-cp .env.local .env
+cp .env.test.dist .env.test
 ```
-Open the newly created file, and in place of the {}'s information, use your database connection information. Having done that, run the following:
+If you need to change any database information, change the DATABASE_URL value, although for testing purposes the .env.dist file already has the default value to work with the MySQL container. Then run the same command for `phpunit.dist.xml`
+```
+cp phpunit.dist.xml phpunit.xml
+```
+
+Having done that, run the following:
 
 ```
 docker-compose build
@@ -37,6 +42,18 @@ docker-compose exec php php bin/console doctrine:migrations:migrate
 docker-compose exec php php bin/console lexik:jwt:generate-keypair
 ```
 If all containers are up and running without errors, then the app is ready for usage.
+
+## Tests
+Before running the integration tests to validate the application's features, you must migrate the databases dedicated to tests. Symfony by default has configuration set to use a separate database for tests, so the following must be executed:
+```
+docker-compose exec php php bin/console doctrine:migrations:migrate --env=test
+```
+
+Once the migratiom finishes, just run
+```
+docker-compose exec php php vendor/bin/phpunit tests/
+```
+
 ## Usage
 ### __Users__
 #### User creation
